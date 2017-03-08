@@ -1,8 +1,8 @@
 <?php
 namespace Craft;
 
-class FruitIcons_IconFieldType extends BaseFieldType
-{
+class FruitIcons_IconFieldType extends BaseFieldType {
+
     /**
      * Fieldtype name
      *
@@ -12,7 +12,7 @@ class FruitIcons_IconFieldType extends BaseFieldType
     {
         return Craft::t('Icon');
     }
-    
+
 	/**
 	 * Returns the default icon vendor options.
 	 *
@@ -22,12 +22,11 @@ class FruitIcons_IconFieldType extends BaseFieldType
 	{
 		return array(
 			'fontawesome' => 'Font Awesome',
-			'glyphicons' => 'Glyphicons',
-			'icomoon' => 'IcoMoon',
-			'ionicons' => 'Ionicons'
+            'ionicons' => 'Ionicons',
+			'materialdesignicons' => 'Material Design Icons'
 		);
 	}
-	
+
 	/**
 	 * Returns the default values
 	 *
@@ -51,7 +50,7 @@ class FruitIcons_IconFieldType extends BaseFieldType
     {
         return array(AttributeType::Mixed);
     }
-    
+
 	/**
 	 * Defines the settings.
 	 *
@@ -63,9 +62,9 @@ class FruitIcons_IconFieldType extends BaseFieldType
 		$settings['vendor'] = AttributeType::String;
 		$settings['defaultIcon'] = AttributeType::Bool;
 		$settings['defaultIconClass'] = AttributeType::String;
-		//$settings['customVendorName'] = AttributeType::String;	
-		//$settings['customVendorTag'] = AttributeType::String;	
-		//$settings['customVendorIcons'] = AttributeType::String;	
+		//$settings['customVendorName'] = AttributeType::String;
+		//$settings['customVendorTag'] = AttributeType::String;
+		//$settings['customVendorIcons'] = AttributeType::String;
 		return $settings;
 	}
 
@@ -75,13 +74,12 @@ class FruitIcons_IconFieldType extends BaseFieldType
 	 * @return string|null
 	 */
 	public function getSettingsHtml()
-	{			
+	{
 		return craft()->templates->render('fruiticons/_fieldtype/settings', array(
-			'vendors' 			   		=> $this->getIconVendors(),
-			'settings' 			  	 	=> $this->getSettings()
+			'vendors' => $this->getIconVendors(),
+			'settings' => $this->getSettings()
 		));
 	}
-
 
     /**
      * Display our fieldtype
@@ -94,23 +92,39 @@ class FruitIcons_IconFieldType extends BaseFieldType
 
     	// Settings
     	$settings = $this->getSettings();
-    	
+
     	// This is where we will be getting vendor icons etc etc
-    	require_once(craft()->path->getPluginsPath() . 'fruiticons/data/fontawesome.php' );
-		$icons = fontAwesomeIcons();
+        switch ($settings['vendor']) {
+            case 'ionicons':
+                require_once(craft()->path->getPluginsPath() . 'fruiticons/data/ionicons.php' );
+                $icons = ionIcons();
+                // Font Libraries
+                craft()->templates->includeCssFile('//code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css');
+                break;
+            case 'materialdesignicons':
+                require_once(craft()->path->getPluginsPath() . 'fruiticons/data/materialdesignicons.php' );
+                $icons = materialDesignIcons();
+                // Font Libraries
+                craft()->templates->includeCssFile('//cdn.materialdesignicons.com/1.8.36/css/materialdesignicons.min.css');
+                break;
+            case 'fontawesome':
+            default:
+                require_once(craft()->path->getPluginsPath() . 'fruiticons/data/fontawesome.php' );
+                $icons = fontAwesomeIcons();
+                // Font Libraries
+                craft()->templates->includeCssFile('//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css');
+                break;
+        }
 
        	// Selectize Includes
     	craft()->templates->includeJsResource('fruiticons/tools/selectize/js/standalone/selectize.js');
-    	craft()->templates->includeCssResource('fruiticons/tools/selectize/css/selectize.css');    
-    	craft()->templates->includeCssResource('fruiticons/tools/selectize/css/selectize.default.css');    
-
-       	// Font Libraries
-    	craft()->templates->includeCssFile('//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css');
+    	craft()->templates->includeCssResource('fruiticons/tools/selectize/css/selectize.css');
+    	craft()->templates->includeCssResource('fruiticons/tools/selectize/css/selectize.default.css');
 
        	// Plugin Includes
     	craft()->templates->includeJsResource('fruiticons/js/icons.js');
     	craft()->templates->includeCssResource('fruiticons/css/icons.css');
-    	
+
     	$id = craft()->templates->formatInputId($name);
         craft()->templates->includeJs('var fruitIcons = new FruitIcons("'.craft()->templates->namespaceInputId($id).'");');
 
@@ -120,10 +134,9 @@ class FruitIcons_IconFieldType extends BaseFieldType
             'value'  => isset($value['isDefault']) ? null : $value,
             'icons' => $icons,
             'settings' => $settings
-        )); 
+        ));
     }
 
-    
 	/**
 	 * Returns the input value as it should be saved to the database.
 	 *
@@ -134,14 +147,17 @@ class FruitIcons_IconFieldType extends BaseFieldType
 	{
 		if($value != '')
 		{
-			$value = array(
-				'class' => $value,
-				'icon' => '<i class="fa '.$value.'"></i>'
-			);
+            // Settings
+    		$settings = $this->getSettings();
+
+            $value = array(
+                'vendor' => $settings['vendor'],
+                'class' => $value,
+                'icon' => '<i class="'.$value.'"></i>'
+            );
  		}
 		return is_array($value) ? json_encode($value) : $value;
 	}
-
 
 	/**
 	 * Preps the field value for use.
@@ -153,7 +169,7 @@ class FruitIcons_IconFieldType extends BaseFieldType
 	{
 		// Settings
 		$settings = $this->getSettings();
-		
+
 		if(is_array($value))
 		{
 			$value['icon'] = TemplateHelper::getRaw($value['icon']);
@@ -163,7 +179,7 @@ class FruitIcons_IconFieldType extends BaseFieldType
 			// Default Icon
 			$value['isDefault'] = true;
 			$value['class'] = $settings['defaultIconClass'];
-			$value['icon'] = TemplateHelper::getRaw('<i class="fa '.$settings['defaultIconClass'].'"></i>');
+            $value['icon'] = TemplateHelper::getRaw('<i class="'.$settings['defaultIconClass'].'"></i>');
 		}
 
 		/*
@@ -174,18 +190,18 @@ class FruitIcons_IconFieldType extends BaseFieldType
 
 			// Get Defualts
 			$defaults = $this->getValueDefaults();
-		
+
 			// Merge With Defaults
 			$value = array_merge($defaults, $value);
-			
-			
+
+
 			// Process?
 			if($value['class'] == '')
 			{
-				$value = false;	
+				$value = false;
 			}
 			else
-			{				
+			{
 				// Build Icon Object
 				$value['icon'] = '<i class="'.$value['class'].'"></i>';
 				$value['vendor'] = 'fontawesome';
@@ -194,23 +210,20 @@ class FruitIcons_IconFieldType extends BaseFieldType
 				// TODO : Add Vendor Logic
 				switch($value['vendor'])
 				{
-					case('fontawesome'): 
+					case('fontawesome'):
 
 
 						break;
 				}
-				
+
 
 			}
 		}
 		*/
-		
-		return is_array($value) ? $value : null;
-	}    
-	
 
-	
-	
+		return is_array($value) ? $value : null;
+	}
+
 	/**
 	 * Validates the value beyond the checks that were assumed based on the content attribute.
 	 *
@@ -225,7 +238,7 @@ class FruitIcons_IconFieldType extends BaseFieldType
 
 
 		return $errors ? $errors : true;
-			
-	}		
-	
+
+	}
+
 }
